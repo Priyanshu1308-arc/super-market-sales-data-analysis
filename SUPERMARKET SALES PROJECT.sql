@@ -1,0 +1,253 @@
+-- CREATE A DATABASE NAMED "SUPER MARKET SALES DATA"
+CREATE DATABASE IF NOT EXISTS SUPER_MARKET_SALES_DATA;
+SHOW DATABASES ;
+USE SUPER_MARKET_SALES_DATA;
+-- CREATE A TABLE INSIDE THE DATABASE NAMED "SUPER MARKET SALES DATA".
+CREATE TABLE SUPER_MARKET(
+ROW_ID INT AUTO_INCREMENT,
+ORDER_ID VARCHAR(20)NOT NULL,
+ORDER_DATE DATE NOT NULL,
+SHIP_DATE DATE NOT NULL,
+SHIP_MODE VARCHAR(20)NOT NULL,
+CUSTOMER_NAME VARCHAR(25)NOT NULL,
+SEGMENT VARCHAR(20)NOT NULL,
+COUNTRY VARCHAR(20)NOT NULL,
+CITY VARCHAR(20)NOT NULL,
+STATE VARCHAR(20)NOT NULL,
+REGION VARCHAR(20)NOT NULL,
+PRODUCT_ID VARCHAR(16)NOT NULL,
+CATEGORY VARCHAR(20)NOT NULL,
+SUB_CATEGORY VARCHAR(20)NOT NULL,
+PRODUCT_NAME VARCHAR(150)NOT NULL,
+SALES DECIMAL (38,0) NOT NULL,
+QUANTITY DECIMAL(38,0) NOT NULL,
+DISCOUNT DECIMAL(38,3) NOT NULL,
+PROFIT DECIMAL(38,5) NOT NULL,
+PRIMARY KEY (ROW_ID)
+);
+
+DESC SUPER_MARKET;
+SELECT * FROM SUPER_MARKET;
+
+-- SHOW THE FIRST 10 ROW
+SELECT*FROM SUPER_MARKET LIMIT 10;
+
+-- HOW MANY ROWS IN THE DATASET
+SELECT COUNT(*) AS TOTAL_ROW
+FROM SUPER_MARKET
+
+-- HOW MANY DISTINCT CUSTOMER IN THE DATASET
+
+SELECT COUNT(DISTINCT CUSTOMER_ID) AS DISTINCT_CUSTOMERS
+FROM SUPER_MARKET
+
+
+-- TOTAL SALES AND TOTAL PROFIT
+SELECT SUM(SALES)AS TOTAL_SALES,
+SUM(PROFIT)AS TOTAL_PROFIT
+FROM SUPER_MARKET
+
+-- AVERAGE SALES PER ROW
+SELECT AVG(SALES)AS AVERAGE_SALES
+FROM SUPER_MARKET
+
+-- AVERAGE ORDER VALUE
+SELECT AVG(ORDER_TOTAL) AS AVERAGE_ORDER_VALUE
+FROM
+(SELECT ORDER_ID, SUM(SALES) AS ORDER_TOTAL
+FROM SUPER_MARKET
+GROUP BY ORDER_ID) T;
+
+-- TOP 10 PRODUCT BY TOTAL SALES
+SELECT PRODUCT_NAME, SUM(SALES)AS TOTAL_SALES
+FROM SUPER_MARKET 
+GROUP BY PRODUCT_NAME
+ORDER BY TOTAL_SALES LIMIT 10
+
+-- SALES BY CATEGORY(DESCENDING)
+SELECT CATEGORY,SUM(SALES) AS TOTAL_SALES
+FROM SUPER_MARKET
+GROUP BY CATEGORY
+ORDER BY TOTAL_SALES DESC;
+
+-- SALES BY REGION AND YEAR
+
+SELECT REGION,YEAR(SHIP_DATE) AS year, SUM(SALES)AS TOTAL_SALES
+FROM SUPER_MARKET 
+GROUP BY REGION,year
+ORDER BY REGION,year
+
+-- Monthly sales trend (year + month).
+
+SELECT YEAR(ORDER_DATE)AS year, MONTH(ORDER_DATE) AS MONTH, SUM(SALES)TOTAL_SALES
+FROM SUPER_MARKET
+GROUP BY YEAR,MONTH
+ORDER BY YEAR,MONTH;
+
+-- ORDERS THAT MADE A LOSS.
+SELECT ORDER_ID, SUM(PROFIT)AS TOTAL_PROFIT
+FROM SUPER_MARKET 
+GROUP BY ORDER_ID
+HAVING TOTAL_PROFIT<0;
+
+-- PROFIT MARGIN BY CATEGORY
+SELECT category, SUM(profit)/NULLIF(SUM(sales),0) AS profit_margin
+FROM super_MARKET
+GROUP BY category
+ORDER BY profit_margin DESC;
+
+-- HOW DISCOUNT AFFECT PROFIT- AVERAGE PROFIT BY DISCOUNT LEVEL
+SELECT (DISCOUNT)AS TOTAL_DISCOUNT,AVG(PROFIT) AS AVG_PROFIT
+FROM super_markeT
+GROUP BY TOTAL_DISCOUNT
+ORDER BY TOTAL_DISCOUNT
+
+-- TOP 10 CUSTOMERS BY LIFETIME TOTAL_SALES
+SELECT CUSTOMER_ID,CUSTOMER_NAME, SUM(SALES)AS TOTAL_SALES
+FROM SUPER_MARKET
+GROUP BY CUSTOMER_ID,CUSTOMER_NAME
+ORDER BY TOTAL_SALES DESC LIMIT 10;
+
+-- HOW MANY ORDER PER CUSTOMER
+SELECT customer_id, customer_name, COUNT(DISTINCT order_id) AS num_orders
+FROM super_MARKET
+GROUP BY customer_id, customer_name
+ORDER BY num_orders DESC;
+
+-- Top 5 sub-categories by profit.
+SELECT SUB_CATEGORY,SUM(PROFIT)AS TOTAL_PROFIT
+FROM super_market
+GROUP BY SUB_CATEGORY
+ORDER BY TOTAL_PROFIT DESC LIMIT 5;
+
+-- Orders with very high discounts (>= 50%).
+SELECT*
+FROM SUPER_MARKET 
+WHERE DISCOUNT >=0.5;
+
+-- Products with total quantity sold > 100 units.
+SELECT PRODUCT_NAME,SUM(QUANTITY)AS TOTAL_QUANTITY_SOLD
+FROM super_market
+GROUP BY PRODUCT_NAME
+HAVING SUM(QUANTITY)>100
+ORDER BY TOTAL_QUANTITY_SOLD DESC;
+
+-- Average discount by customer segment.
+SELECT SEGMENT, AVG(DISCOUNT)AS AVG_DISCOUNT
+FROM super_market
+GROUP BY SEGMENT
+
+-- Which weekday has highest sales?
+SELECT DAYNAME(ORDER_DATE) AS WEEKDAY,SUM(SALES) AS TOTAL_SALES
+FROM SUPER_MARKET 
+GROUP BY WEEKDAY
+ORDER BY TOTAL_SALES;
+
+-- Rows with negative or zero sales, quantity or profit (data issues).
+SELECT *
+FROM super_MARKET
+WHERE sales <= 0 OR quantity <= 0 OR profit < 0;
+
+-- TOP 10 ORDER BY SALES
+SELECT ORDER_ID,SUM(SALES)AS TOTAL_SALES
+FROM super_markeT 
+GROUP BY ORDER_ID
+ORDER BY TOTAL_SALES DESC LIMIT 10;
+
+-- Top 3 products per region (use ranking).
+SELECT REGION,PRODUCT_NAME
+FROM SUPER_MARKET 
+GROUP BY REGION,PRODUCT_NAME
+ORDER BY REGION,PRODUCT_NAME DESC LIMIT 3;
+
+-- CUSTOMER WHO PURCHASED FROM MULTIPLE REGION.
+SELECT customer_id, customer_name, COUNT(DISTINCT region) AS regions_count
+FROM super_MARKET
+GROUP BY customer_id, customer_name
+HAVING COUNT(DISTINCT region) > 1;
+
+-- Products with high average discount but still profitable.
+SELECT PRODUCT_NAME,AVG(DISCOUNT)AS AVG_DISCOUNT,SUM(PROFIT)AS TOTAL_PROFIT
+FROM SUPER_MARKET 
+GROUP BY PRODUCT_NAME
+HAVING SUM(PROFIT)>0
+ORDER BY AVG_DISCOUNT DESC LIMIT 20
+
+-- Detect data errors: ship_date < order_date.
+SELECT *
+FROM super_MARKET
+WHERE ship_date < order_date
+
+-- Create a view: monthly_sales_by_category
+CREATE VIEW monthly_sales_by_category AS
+SELECT YEAR(ORDER_DATE) AS YEAR,MONTH(ORDER_DATE)AS MONTH,CATEGORY,SUM(SALES)AS TOTAL_SALES
+FROM SUPER_MARKET
+GROUP BY YEAR,MONTH,CATEGORY;
+
+SHOW TABLES
+
+-- Pivot-like report: sales by category per region (conditional aggregation).
+SELECT region,
+  SUM(CASE WHEN category='Furniture' THEN sales ELSE 0 END) AS furniture_sales,
+  SUM(CASE WHEN category='Office Supplies' THEN sales ELSE 0 END) AS office_sales,
+  SUM(CASE WHEN category='Technology' THEN sales ELSE 0 END) AS tech_sales
+FROM super_MARKET
+GROUP BY region;
+ 
+-- REORDER REPEAT PURCHASE RATE; % CUSTOMERS WITH >1 ORDER.
+SELECT 
+  100.0 * SUM(CASE WHEN orders>1 THEN 1 ELSE 0 END)/COUNT(*) AS pct_repeat_customers
+FROM (
+  SELECT customer_id, COUNT(DISTINCT order_id) AS orders
+  FROM super_market
+  GROUP BY customer_id
+) t;
+
+-- product with many negative profit lines(possible returns)
+SELECT product_name,
+  SUM(CASE WHEN profit < 0 THEN 1 ELSE 0 END) AS negative_profit_count,
+  COUNT(*) AS total_lines
+FROM super_market
+GROUP BY product_name
+HAVING negative_profit_count > 5
+ORDER BY negative_profit_count DESC;
+
+-- average delivery time by ship mode and region.
+select ship_mode,region, avg(datediff(ship_date,order_date)) as avg_ship_days
+from super_market 
+group by ship_mode,region
+
+-- Search products containing a word (e.g., 'Binder').
+select distinct product_name
+from super_market
+where product_name like '%binder%'
+
+-- Rank customers by profit contribution (top contributors).
+SELECT customer_id, customer_name, total_profit, RANK() OVER (ORDER BY total_profit DESC) AS rnk
+from
+(select customer_id,customer_name, sum(profit)as total_profit
+from super_market
+group by customer_id,customer_name) temp1
+order by total_profit desc limit 20;
+
+-- find rows with zero sales (if any).
+select*
+from super_market 
+where sales=0;
+
+-- Orders/lines where discount > average discount.
+select*
+from super_market
+where discount>(select avg(discount)from super_market);
+
+-- 
+
+
+ 
+
+
+
+
+
+
+
